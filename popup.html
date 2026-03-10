@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    overflow: hidden;
+    font-family: 'Comic Sans MS', 'Arial', cursive;
+    user-select: none;
+    -webkit-app-region: drag;
+  }
+
+  .popup {
+    width: 100%;
+    height: 100vh;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Title bar */
+  .titlebar {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .titlebar-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .real-close-btn {
+    -webkit-app-region: no-drag;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    border-radius: 2px;
+    color: white;
+    opacity: 0.4;
+    transition: opacity 0.3s;
+    flex-shrink: 0;
+  }
+
+  .real-close-btn:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.2);
+  }
+
+  /* Content area */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    position: relative;
+    -webkit-app-region: no-drag;
+  }
+
+  .headline {
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 8px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  }
+
+  .subtext {
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 12px;
+    opacity: 0.9;
+  }
+
+  .cta-btn {
+    -webkit-app-region: no-drag;
+    padding: 10px 28px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    animation: pulse 1s ease-in-out infinite;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  @keyframes rainbow {
+    0% { color: #ff0000; }
+    16% { color: #ff8800; }
+    33% { color: #ffff00; }
+    50% { color: #00ff00; }
+    66% { color: #0088ff; }
+    83% { color: #8800ff; }
+    100% { color: #ff0000; }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  @keyframes marquee {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  .blink { animation: blink 0.5s ease-in-out infinite; }
+  .rainbow { animation: rainbow 2s linear infinite; }
+  .shake { animation: shake 0.3s ease-in-out infinite; }
+
+  /* Fake close buttons */
+  .fake-close {
+    -webkit-app-region: no-drag;
+    position: absolute;
+    cursor: pointer;
+    z-index: 100;
+    font-size: 11px;
+    transition: all 0.1s;
+  }
+
+  .fake-close.btn-style {
+    background: #e74c3c;
+    color: white;
+    border: 1px solid #c0392b;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-weight: bold;
+  }
+
+  .fake-close.x-style {
+    background: rgba(0,0,0,0.5);
+    color: white;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 12px;
+  }
+
+  .fake-close.text-style {
+    color: #888;
+    text-decoration: underline;
+    font-size: 10px;
+  }
+
+  .fake-close.tiny-style {
+    background: #ccc;
+    color: #999;
+    width: 8px;
+    height: 8px;
+    border-radius: 1px;
+    font-size: 0;
+    border: 1px solid #aaa;
+  }
+
+  /* Big prominent fake close button */
+  .fake-close-big {
+    -webkit-app-region: no-drag;
+    display: block;
+    width: 80%;
+    margin: 8px auto 4px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 5px;
+    border: 2px solid #aaa;
+    background: linear-gradient(180deg, #f0f0f0, #d0d0d0);
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.15s;
+    z-index: 100;
+    position: relative;
+  }
+
+  .fake-close-big:hover {
+    background: linear-gradient(180deg, #e0e0e0, #c0c0c0);
+  }
+
+  /* Marquee */
+  .marquee-bar {
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 11px;
+    padding: 3px 0;
+    font-weight: bold;
+  }
+
+  .marquee-bar span {
+    display: inline-block;
+    animation: marquee 8s linear infinite;
+  }
+
+  /* Casino theme */
+  .theme-casino .popup {
+    background: linear-gradient(135deg, #1a0a2e, #2d1b69, #1a0a2e);
+    border: 3px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), inset 0 0 20px rgba(255, 215, 0, 0.1);
+  }
+  .theme-casino .titlebar { background: linear-gradient(90deg, #8b0000, #ff4500); }
+  .theme-casino .headline { color: #ffd700; }
+  .theme-casino .subtext { color: #ffec8b; }
+  .theme-casino .cta-btn { background: linear-gradient(180deg, #ffd700, #ff8c00); color: #1a0a2e; }
+  .theme-casino .marquee-bar { background: #ffd700; color: #1a0a2e; }
+
+  /* Dating theme */
+  .theme-dating .popup {
+    background: linear-gradient(135deg, #ff69b4, #ff1493, #ff69b4);
+    border: 3px solid #ff69b4;
+    box-shadow: 0 0 15px rgba(255, 105, 180, 0.5);
+  }
+  .theme-dating .titlebar { background: linear-gradient(90deg, #d63384, #e91e8c); }
+  .theme-dating .headline { color: white; }
+  .theme-dating .subtext { color: #ffe0f0; }
+  .theme-dating .cta-btn { background: linear-gradient(180deg, #ff1493, #c71585); color: white; }
+  .theme-dating .marquee-bar { background: #c71585; color: white; }
+
+  /* Virus/scareware theme */
+  .theme-virus .popup {
+    background: linear-gradient(135deg, #1c1c1c, #2d2d2d);
+    border: 3px solid #ff0000;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+  }
+  .theme-virus .titlebar { background: linear-gradient(90deg, #cc0000, #ff0000); }
+  .theme-virus .headline { color: #ff0000; }
+  .theme-virus .subtext { color: #ffcccc; }
+  .theme-virus .cta-btn { background: linear-gradient(180deg, #00aa00, #008800); color: white; }
+  .theme-virus .marquee-bar { background: #ff0000; color: white; }
+
+  /* Winner theme */
+  .theme-winner .popup {
+    background: linear-gradient(135deg, #004400, #006600, #004400);
+    border: 3px solid #00ff00;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+  }
+  .theme-winner .titlebar { background: linear-gradient(90deg, #228b22, #32cd32); }
+  .theme-winner .headline { color: #00ff00; }
+  .theme-winner .subtext { color: #ccffcc; }
+  .theme-winner .cta-btn { background: linear-gradient(180deg, #ffd700, #ffa500); color: #004400; }
+  .theme-winner .marquee-bar { background: #00ff00; color: #004400; }
+
+  /* Confetti canvas */
+  #confetti {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .content > *:not(#confetti) {
+    z-index: 1;
+    position: relative;
+  }
+
+  .counter {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 5px 0;
+  }
+
+  .progress-bar {
+    width: 80%;
+    height: 16px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 8px;
+    animation: fillUp 3s ease-in-out infinite;
+  }
+
+  @keyframes fillUp {
+    0% { width: 15%; }
+    50% { width: 85%; }
+    100% { width: 15%; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const params = new URLSearchParams(window.location.search);
+const theme = params.get("theme") || "casino";
+const style = params.get("style") || "bounce";
+const speed = parseInt(params.get("speed") || "5");
+const fakeCloseCount = parseInt(params.get("fakeClose") || "2");
+const index = parseInt(params.get("index") || "0");
+const soundEnabled = params.get("sound") === "true";
+
+const AD_CONTENT = {
+  casino: {
+    titles: ["🎰 JACKPOT ALERT!", "💰 MEGA CASINO", "🃏 FREE SLOTS!", "🎲 LUCKY SPIN"],
+    headlines: [
+      "YOU WON $1,000,000!!!",
+      "SPIN NOW - 500 FREE CREDITS!",
+      "🎰 MEGA JACKPOT WAITING! 🎰",
+      "YOUR LUCKY DAY! CLAIM NOW!",
+    ],
+    subtexts: [
+      "Click below to claim your GUARANTEED prize!",
+      "Only 2 minutes left to collect your winnings!",
+      "Your neighbor just won $50,000!",
+      "WARNING: Unclaimed prize will expire!",
+    ],
+    ctas: ["CLAIM NOW!", "SPIN FREE!", "GET PRIZE!", "PLAY NOW!"],
+    marquees: [
+      "⭐ CONGRATULATIONS!!! You have been selected! ⭐ Act NOW before time runs out! ⭐",
+      "🎰 John from your city just won $25,000! 🎰 You could be next! 🎰",
+    ],
+  },
+  dating: {
+    titles: ["💕 Hot Singles!", "❤️ Match Found!", "💋 New Message!", "💘 Love Alert!"],
+    headlines: [
+      "3 SINGLES NEAR YOU!",
+      "Someone LIKES you!",
+      "💕 NEW MATCH FOUND! 💕",
+      "Don't be ALONE tonight!",
+    ],
+    subtexts: [
+      "Hot singles in your area want to meet!",
+      "Your secret admirer is waiting...",
+      "97% match rate! Click to see who!",
+      "Free registration - limited time!",
+    ],
+    ctas: ["MEET NOW!", "SEE WHO!", "JOIN FREE!", "MATCH ME!"],
+    marquees: [
+      "💕 Sarah, 2km away, wants to chat! 💕 Don't keep her waiting! 💕",
+      "❤️ 47 people viewed your profile today! ❤️ See who they are! ❤️",
+    ],
+  },
+  virus: {
+    titles: ["⚠️ SECURITY ALERT", "🛡️ VIRUS DETECTED", "⚠️ WARNING!", "🔒 SYSTEM SCAN"],
+    headlines: [
+      "YOUR PC IS INFECTED!",
+      "⚠️ 13 VIRUSES FOUND! ⚠️",
+      "CRITICAL SECURITY WARNING",
+      "SYSTEM AT RISK!",
+    ],
+    subtexts: [
+      "Your personal data is being stolen RIGHT NOW!",
+      "Windows Defender has detected 13 threats!",
+      "Your antivirus has EXPIRED! Renew immediately!",
+      "Hackers can see your screen! Fix now!",
+    ],
+    ctas: ["SCAN NOW!", "FIX IT!", "PROTECT PC!", "REMOVE VIRUS!"],
+    marquees: [
+      "⚠️ CRITICAL: Your firewall is disabled! ⚠️ Personal data at risk! ⚠️ Act immediately! ⚠️",
+      "🛡️ WARNING: Suspicious activity detected from IP 192.168.1.1 🛡️ Click to secure! 🛡️",
+    ],
+  },
+  winner: {
+    titles: ["🎉 YOU WON!", "🏆 WINNER!", "🎊 CONGRATULATIONS!", "⭐ SELECTED!"],
+    headlines: [
+      "YOU ARE THE 1,000,000th VISITOR!",
+      "🎉 PRIZE CLAIM NOTICE! 🎉",
+      "CONGRATULATIONS WINNER!",
+      "YOU'VE BEEN SELECTED!",
+    ],
+    subtexts: [
+      "Click to claim your brand new iPhone 20!",
+      "A $500 gift card is reserved for you!",
+      "Complete a quick survey to get your prize!",
+      "Your reward: choose iPad, iPhone, or $1000!",
+    ],
+    ctas: ["CLAIM PRIZE!", "GET REWARD!", "COLLECT NOW!", "I WANT IT!"],
+    marquees: [
+      "🎉 VERIFIED WINNER! 🎉 Claim your prize before it expires in 00:03:27! 🎉",
+      "⭐ Limited time offer! ⭐ 3 prizes remaining! ⭐ Don't miss out! ⭐",
+    ],
+  },
+};
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function buildPopup() {
+  const data = AD_CONTENT[theme];
+  const root = document.getElementById("root");
+
+  root.className = `theme-${theme}`;
+  root.innerHTML = `
+    <div class="popup">
+      <div class="titlebar">
+        <span class="titlebar-text">${pick(data.titles)}</span>
+        <span class="real-close-btn" id="realClose" title="Close">✕</span>
+      </div>
+      <div class="marquee-bar"><span>${pick(data.marquees)}</span></div>
+      <div class="content" id="content">
+        <canvas id="confetti"></canvas>
+        <div class="headline ${Math.random() > 0.5 ? "blink" : "rainbow"}">${pick(data.headlines)}</div>
+        ${theme === "virus" ? `
+          <div class="counter blink" style="color:#ff0000" id="virusCount">⚠ 13 threats detected!</div>
+          <div class="progress-bar"><div class="progress-fill" style="background:linear-gradient(90deg,#ff0000,#ff4444)"></div></div>
+        ` : theme === "winner" ? `
+          <div class="counter rainbow">🎁 $${(Math.floor(Math.random() * 9000) + 1000).toLocaleString()}.00</div>
+        ` : theme === "casino" ? `
+          <div class="counter" style="color:#ffd700">💰 $${(Math.floor(Math.random() * 99000) + 1000).toLocaleString()}.00</div>
+        ` : ""}
+        <div class="subtext">${pick(data.subtexts)}</div>
+        <button class="cta-btn" id="ctaBtn">${pick(data.ctas)}</button>
+        <div class="fake-close-big" id="fakeCloseBig">Close</div>
+      </div>
+      <div class="marquee-bar"><span>${pick(data.marquees)}</span></div>
+    </div>
+  `;
+
+  // Real close (tiny, low contrast, in titlebar)
+  document.getElementById("realClose").addEventListener("click", (e) => {
+    e.stopPropagation();
+    window.adSim.realClose();
+  });
+
+  // CTA button spawns more popups
+  document.getElementById("ctaBtn").addEventListener("click", () => {
+    window.adSim.multiply();
+  });
+
+  // Big fake "Close" button behavior
+  const fakeCloseBig = document.getElementById("fakeCloseBig");
+  let fakeCloseClicks = 0;
+  const trollMessages = [
+    "Are you sure?", "Really close?", "Click again to confirm",
+    "One more click...", "Almost there!", "Just kidding!",
+    "Nope!", "Try harder!", "Why leave?", "Don't go!",
+    "STAY! We have cookies!", "Error: Close not found",
+    "Task failed successfully", "Closing... NOT!",
+  ];
+  fakeCloseBig.addEventListener("click", (e) => {
+    e.stopPropagation();
+    fakeCloseClicks++;
+    const action = Math.floor(Math.random() * 5);
+    if (action === 0) {
+      // Dodge the window
+      window.adSim.dodge();
+    } else if (action === 1) {
+      // Multiply
+      window.adSim.multiply();
+      fakeCloseBig.textContent = "Oops! More ads!";
+      setTimeout(() => { fakeCloseBig.textContent = "Close"; }, 1200);
+    } else if (action === 2) {
+      // Fake loading then troll
+      fakeCloseBig.textContent = "Closing...";
+      fakeCloseBig.style.opacity = "0.5";
+      setTimeout(() => {
+        fakeCloseBig.textContent = pick(trollMessages);
+        fakeCloseBig.style.opacity = "1";
+      }, 1500);
+      setTimeout(() => { fakeCloseBig.textContent = "Close"; }, 3000);
+    } else if (action === 3) {
+      // Button runs away
+      fakeCloseBig.style.position = "absolute";
+      fakeCloseBig.style.left = Math.random() * 60 + "%";
+      fakeCloseBig.style.top = Math.random() * 60 + "%";
+      fakeCloseBig.style.width = "auto";
+      fakeCloseBig.textContent = pick(trollMessages);
+      setTimeout(() => { fakeCloseBig.textContent = "Close"; }, 1000);
+    } else {
+      // Show troll message
+      fakeCloseBig.textContent = pick(trollMessages);
+      setTimeout(() => { fakeCloseBig.textContent = "Close"; }, 1500);
+    }
+  });
+
+  // Big fake close also dodges on hover sometimes
+  fakeCloseBig.addEventListener("mouseenter", () => {
+    if (Math.random() < 0.3) {
+      fakeCloseBig.style.position = "absolute";
+      fakeCloseBig.style.left = Math.random() * 60 + "%";
+      fakeCloseBig.style.top = Math.random() * 60 + "%";
+      fakeCloseBig.style.width = "auto";
+    }
+  });
+
+  // Add fake close buttons
+  addFakeCloseButtons();
+
+  // Start confetti for winner/casino
+  if (theme === "winner" || theme === "casino") {
+    startConfetti();
+  }
+
+  // Sound
+  if (soundEnabled) {
+    playAnnoyingSound();
+  }
+}
+
+function addFakeCloseButtons() {
+  const content = document.getElementById("content");
+  const fakeStyles = ["btn-style", "x-style", "text-style", "tiny-style"];
+  const fakeLabels = {
+    "btn-style": ["Close", "X", "✕", "Skip Ad", "No Thanks"],
+    "x-style": ["✕", "✖", "×"],
+    "text-style": ["close", "skip", "no thanks", "dismiss", "close ad"],
+    "tiny-style": [""],
+  };
+
+  const positions = [
+    { top: "5px", right: "5px" },
+    { top: "5px", left: "5px" },
+    { bottom: "5px", right: "5px" },
+    { bottom: "5px", left: "5px" },
+    { top: "50%", right: "5px" },
+  ];
+
+  for (let i = 0; i < fakeCloseCount; i++) {
+    const styleClass = fakeStyles[i % fakeStyles.length];
+    const label = pick(fakeLabels[styleClass]);
+    const pos = positions[i % positions.length];
+
+    const btn = document.createElement("div");
+    btn.className = `fake-close ${styleClass}`;
+    btn.textContent = label;
+
+    Object.entries(pos).forEach(([k, v]) => {
+      btn.style[k] = v;
+    });
+
+    let clickCount = 0;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      clickCount++;
+
+      // Different troll behaviors
+      const behavior = Math.floor(Math.random() * 4);
+
+      if (behavior === 0) {
+        // Dodge - window jumps away
+        window.adSim.dodge();
+      } else if (behavior === 1) {
+        // Multiply - spawn more popups
+        window.adSim.multiply();
+      } else if (behavior === 2) {
+        // Move the button itself
+        btn.style.top = Math.random() * 80 + "%";
+        btn.style.left = Math.random() * 80 + "%";
+        btn.style.right = "auto";
+        btn.style.bottom = "auto";
+      } else {
+        // Change label to taunt
+        const taunts = ["Nice try!", "Nope!", "Haha!", "Not here!", "Try again!", "😈", "👀"];
+        btn.textContent = pick(taunts);
+        setTimeout(() => { btn.textContent = label; }, 1000);
+      }
+    });
+
+    // Make tiny-style buttons flee from cursor
+    if (styleClass === "tiny-style" || Math.random() > 0.5) {
+      btn.addEventListener("mouseenter", () => {
+        btn.style.top = Math.random() * 80 + "%";
+        btn.style.left = Math.random() * 80 + "%";
+        btn.style.right = "auto";
+        btn.style.bottom = "auto";
+      });
+    }
+
+    content.appendChild(btn);
+  }
+}
+
+function startConfetti() {
+  const canvas = document.getElementById("confetti");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  canvas.width = canvas.parentElement.offsetWidth;
+  canvas.height = canvas.parentElement.offsetHeight;
+
+  const particles = Array.from({ length: 30 }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height - canvas.height,
+    w: Math.random() * 8 + 4,
+    h: Math.random() * 4 + 2,
+    color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+    vy: Math.random() * 2 + 1,
+    vx: (Math.random() - 0.5) * 2,
+    rotation: Math.random() * 360,
+    rv: (Math.random() - 0.5) * 10,
+  }));
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach((p) => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+      p.y += p.vy;
+      p.x += p.vx;
+      p.rotation += p.rv;
+      if (p.y > canvas.height) {
+        p.y = -10;
+        p.x = Math.random() * canvas.width;
+      }
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+function playAnnoyingSound() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function beep() {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 800 + Math.random() * 1200;
+      gain.gain.value = 0.05;
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    }
+    beep();
+    setInterval(beep, 3000 + Math.random() * 5000);
+  } catch (e) {}
+}
+
+buildPopup();
+</script>
+</body>
+</html>

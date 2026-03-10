@@ -1,0 +1,39 @@
+{
+  "name": "ad-simulator",
+  "version": "1.0.0",
+  "description": "Cross-platform annoying ad popup simulator controlled via CLI",
+  "main": "main.js",
+  "bin": {
+    "ad-sim": "./cli.js"
+  },
+  "scripts": {
+    "start": "electron . --popup-count=3 --style=bounce",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "electron": "^33.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.ad-simulator",
+    "productName": "ad-simulator",
+    "files": [
+      "main.js",
+      "preload.js",
+      "popup.html",
+      "cli.js"
+    ],
+    "linux": {
+      "target": ["AppImage"]
+    },
+    "mac": {
+      "target": ["dmg"]
+    },
+    "win": {
+      "target": ["nsis"]
+    }
+  }
+}
