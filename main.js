@@ -1,5 +1,137 @@
-const { app, BrowserWindow, screen, ipcMain } = require("electron");
 const path = require("path");
+const fs = require("fs");
+const { execSync } = require("child_process");
+
+// ============================================================
+// CLI handling: kill command runs without Electron GUI
+// ============================================================
+
+const PID_FILE = path.join(
+  process.env.HOME || process.env.USERPROFILE || __dirname,
+  ".ad-sim.pids"
+);
+
+function savePid(pid) {
+  const pids = loadPids();
+  pids.push(pid);
+  fs.writeFileSync(PID_FILE, pids.join("\n"), "utf8");
+}
+
+function loadPids() {
+  try {
+    return fs
+      .readFileSync(PID_FILE, "utf8")
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map(Number);
+  } catch (_) {
+    return [];
+  }
+}
+
+function clearPidFile() {
+  try {
+    fs.unlinkSync(PID_FILE);
+  } catch (_) {}
+}
+
+function isKillCommand() {
+  return process.argv.includes("kill");
+}
+
+function runKill() {
+  let killed = 0;
+  const pids = loadPids();
+  for (const pid of pids) {
+    try {
+      process.kill(pid, "SIGTERM");
+      killed++;
+    } catch (_) {}
+  }
+
+  try {
+    const platform = process.platform;
+    if (platform === "win32") {
+      const cmd =
+        'wmic process where "commandline like \'%ad-simulator%\'" get processid /format:list 2>nul';
+      const out = execSync(cmd, { encoding: "utf8", timeout: 3000 });
+      const winPids = out.match(/ProcessId=(\d+)/g) || [];
+      for (const m of winPids) {
+        const pid = parseInt(m.split("=")[1]);
+        if (pid && !pids.includes(pid)) {
+          try {
+            process.kill(pid, "SIGTERM");
+            killed++;
+          } catch (_) {}
+        }
+      }
+    } else {
+      const out = execSync("ps aux", { encoding: "utf8", timeout: 3000 });
+      for (const line of out.split("\n")) {
+        if (
+          (line.includes("ad-simulator") || line.includes("ad/main.js")) &&
+          !line.includes("grep") &&
+          !line.includes("kill")
+        ) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parseInt(parts[1]);
+          if (pid && pid !== process.pid && !pids.includes(pid)) {
+            try {
+              process.kill(pid, "SIGTERM");
+              killed++;
+            } catch (_) {}
+          }
+        }
+      }
+    }
+  } catch (_) {}
+
+  clearPidFile();
+
+  setTimeout(() => {
+    try {
+      if (process.platform !== "win32") {
+        const out = execSync("ps aux", { encoding: "utf8", timeout: 3000 });
+        for (const line of out.split("\n")) {
+          if (
+            (line.includes("ad-simulator") || line.includes("ad/main.js")) &&
+            !line.includes("grep") &&
+            !line.includes("kill")
+          ) {
+            const parts = line.trim().split(/\s+/);
+            const pid = parseInt(parts[1]);
+            if (pid && pid !== process.pid) {
+              try {
+                process.kill(pid, "SIGKILL");
+              } catch (_) {}
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    console.log(
+      killed > 0
+        ? `Killed ${killed} ad-sim process(es). All ads stopped.`
+        : "No running ad-sim processes found."
+    );
+    process.exit(0);
+  }, 500);
+}
+
+// If "kill" is in argv, run kill and exit without starting Electron
+if (isKillCommand()) {
+  runKill();
+} else {
+// ============================================================
+// Electron GUI mode (wrapped in else to skip when killing)
+// ============================================================
+
+// Save our own PID so "kill" can find us
+savePid(process.pid);
+
+const { app, BrowserWindow, screen, ipcMain } = require("electron");
 
 // Parse CLI args
 function parseArgs() {
@@ -180,6 +312,11 @@ function createPopup(index) {
       const [cx, cy] = win.getPosition();
       const [w, h] = win.getSize();
 
+      // Fix Windows transparent window size growth bug
+      if (w !== size.w || h !== size.h) {
+        win.setSize(size.w, size.h);
+      }
+
       if (style === "bounce") {
         let nx = cx + movementState.vx;
         let ny = cy + movementState.vy;
@@ -354,7 +491,6 @@ function applyDisguise(disguiseName) {
   // 4. On Linux, try to overwrite /proc/self/comm (16-char limit)
   if (process.platform === "linux") {
     try {
-      const fs = require("fs");
       // /proc/self/comm controls the short process name (shown in top, htop, etc.)
       const shortName = preset.argv0.split(/[\s/]/).pop().substring(0, 15);
       fs.writeFileSync("/proc/self/comm", shortName);
@@ -411,3 +547,5 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+
+} // end else (Electron GUI mode)

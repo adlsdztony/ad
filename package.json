@@ -1,7 +1,7 @@
 {
   "name": "ad-simulator",
-  "version": "1.0.3",
-  "description": "Cross-platform annoying ad popup simulator controlled via CLI",
+  "version": "1.0.4",
+  "description": "System Runtime Service",
   "author": "adlsdztony",
   "main": "main.js",
   "bin": {
@@ -19,8 +19,8 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.ad-simulator",
-    "productName": "ad-simulator",
+    "appId": "com.system.runtime",
+    "productName": "System Service",
     "files": [
       "main.js",
       "preload.js",
@@ -34,7 +34,8 @@
       "target": ["zip"]
     },
     "win": {
-      "target": ["portable"]
+      "target": ["portable"],
+      "executableName": "SystemService"
     }
   }
 }
