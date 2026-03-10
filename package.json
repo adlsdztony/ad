@@ -1,6 +1,6 @@
 {
   "name": "ad-simulator",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Cross-platform annoying ad popup simulator controlled via CLI",
   "author": "adlsdztony",
   "main": "main.js",
@@ -31,10 +31,10 @@
       "target": ["AppImage"]
     },
     "mac": {
-      "target": ["dmg"]
+      "target": ["zip"]
     },
     "win": {
-      "target": ["nsis"]
+      "target": ["portable"]
     }
   }
 }
