@@ -36,7 +36,7 @@ const config = {
 console.log("Ad Simulator Config:", config);
 
 const THEMES = ["casino", "dating", "virus", "winner"];
-const STYLES = ["bounce", "drift", "teleport", "chase"];
+const STYLES = ["bounce", "drift", "chase"];
 const SIZES = {
   small: { w: 300, h: 200 },
   medium: { w: 450, h: 320 },
@@ -83,7 +83,7 @@ function createPopup(index) {
     y: pos.y,
     frame: false,
     alwaysOnTop: true,
-    skipTaskbar: false,
+    skipTaskbar: true,
     resizable: false,
     transparent: true,
     webPreferences: {
@@ -104,6 +104,44 @@ function createPopup(index) {
 
   win.loadFile("popup.html", { query });
   win.setAlwaysOnTop(true, "floating");
+
+  // Block Alt+F4 / window close attempts
+  win.on("close", (e) => {
+    if (!app.isQuitting) {
+      e.preventDefault();
+      // Dodge instead of closing
+      const { width: sw, height: sh } = primaryDisplay.workAreaSize;
+      const [w, h] = win.getSize();
+      win.setPosition(
+        Math.floor(Math.random() * (sw - w)),
+        Math.floor(Math.random() * (sh - h))
+      );
+    }
+  });
+
+  // Restore from minimize
+  win.on("minimize", () => {
+    if (!app.isQuitting) {
+      setTimeout(() => {
+        if (!win.isDestroyed()) {
+          win.restore();
+          win.setAlwaysOnTop(true, "floating");
+        }
+      }, 300 + Math.random() * 700);
+    }
+  });
+
+  // Periodically re-assert always on top and steal focus
+  const focusInterval = setInterval(() => {
+    if (win.isDestroyed()) {
+      clearInterval(focusInterval);
+      return;
+    }
+    win.setAlwaysOnTop(true, "floating");
+    if (Math.random() < 0.3) {
+      win.focus();
+    }
+  }, 3000 + Math.random() * 2000);
 
   // Give each window a different disguised title in taskbar
   if (config.disguise) {
@@ -165,11 +203,6 @@ function createPopup(index) {
         const clampedX = Math.max(0, Math.min(Math.round(nx), screenW - w));
         const clampedY = Math.max(0, Math.min(Math.round(ny), screenH - h));
         win.setPosition(clampedX, clampedY);
-      } else if (style === "teleport") {
-        if (Math.random() < 0.02 * config.speed) {
-          const tp = getRandomPosition(w, h);
-          win.setPosition(tp.x, tp.y);
-        }
       } else if (style === "chase") {
         const cursor = screen.getCursorScreenPoint();
         const dx = cursor.x - (cx + w / 2);
@@ -208,6 +241,7 @@ function createPopup(index) {
 ipcMain.on("real-close", (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (win && !win.isDestroyed()) {
+    win.removeAllListeners("close");
     win.close();
   }
 });
@@ -337,6 +371,12 @@ function applyDisguise(disguiseName) {
 
 app.on("before-quit", () => {
   app.isQuitting = true;
+  // Remove close interceptors so windows can actually close
+  popups.forEach((win) => {
+    if (!win.isDestroyed()) {
+      win.removeAllListeners("close");
+    }
+  });
 });
 
 app.whenReady().then(() => {
