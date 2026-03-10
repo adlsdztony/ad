@@ -1,6 +1,6 @@
 {
   "name": "ad-simulator",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Cross-platform annoying ad popup simulator controlled via CLI",
   "author": "adlsdztony",
   "main": "main.js",
