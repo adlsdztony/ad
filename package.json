@@ -2,6 +2,7 @@
   "name": "ad-simulator",
   "version": "1.0.0",
   "description": "Cross-platform annoying ad popup simulator controlled via CLI",
+  "author": "adlsdztony",
   "main": "main.js",
   "bin": {
     "ad-sim": "./cli.js"
@@ -11,10 +12,10 @@
     "build": "electron-builder"
   },
   "dependencies": {
-    "commander": "^12.1.0",
-    "electron": "^33.0.0"
+    "commander": "^12.1.0"
   },
   "devDependencies": {
+    "electron": "^33.0.0",
     "electron-builder": "^25.1.8"
   },
   "build": {
